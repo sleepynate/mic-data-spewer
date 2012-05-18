@@ -1,7 +1,6 @@
 import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Rectangle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.ShortBuffer;
@@ -114,9 +113,7 @@ public class MicDataSpewer extends Applet {
 			return;
 		}
 		if (sbAsArrays != null) {
-			// g.drawString("Average: " + runningAvg.toString(), 20, 60);
-			// g.drawString("Count: " + runningAvgCount.toString(), 20, 80);
-
+			/*
 			Rectangle drawingSpace = g.getClipBounds();
 			g.setColor(Color.BLACK);
 			g.fillRect(0, 0, drawingSpace.width, drawingSpace.height);
@@ -131,7 +128,9 @@ public class MicDataSpewer extends Applet {
 						Short.MIN_VALUE, 0, drawingSpace.height);
 
 				g.drawLine(oldX, oldY, newX, newY);
+			
 			}
+			*/
 		} else {
 			g.drawString("Loading...", 20, 60);
 		}
