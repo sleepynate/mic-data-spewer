@@ -1,103 +1,74 @@
 import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.ShortBuffer;
-
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.TargetDataLine;
 
 import netscape.javascript.JSObject;
 
-
 public class MicDataSpewer extends Applet {
 	private static final long serialVersionUID = 1L;
-	TargetDataLine dataline;
-	SamplingThread sampleThread;
-	AudioFormat audioFormat;
 	int multiplier = 2;
 
 	private short[] sbAsArrays;
 
 	boolean errorState;
+	boolean running;
+	SampleThread sampleThread;
 	String errMsg;
 
 	public void start() {
-		audioFormat = new AudioFormat(44100, 16, 1, true, false);
-		DataLine.Info dataLineInfo = new DataLine.Info(TargetDataLine.class,
-				audioFormat);
-		System.out.println(dataLineInfo);
+		sampleThread = new SampleThread();
+		sampleThread.start();
+	}
 
-		try {
-			dataline = (TargetDataLine) AudioSystem.getLine(dataLineInfo);
-			System.out.println(dataline);
-			dataline.open(audioFormat);
-		} catch (Exception e) {
-			errorState = true;
-			errMsg = "Could not open data line for AudioSystem -- "
-					+ e.getMessage();
-			repaint();
-			return;
-		}
+	public class SampleThread extends Thread {
+		public void run() {
+			try {
+				running = true;
+				double fCyclePosition = 0;
+				while (running) {
+					final int SAMPLING_RATE = 44100; // Audio sampling rate
 
-		try {
-			sampleThread = new SamplingThread();
-			sampleThread.start();
-		} catch (Exception e) {
-			errorState = true;
-			errMsg = "Could not start sampling thread. -- " + e.getMessage();
-			repaint();
+					double fFreq = 440; // Frequency of sine wave in hz
+
+					// Position through the sine wave as a percentage (i.e. 0 to
+					// 1 is 0 to 2*PI)
+					sbAsArrays = new short[882];
+
+					for (int i = 0; i < 882; i++) {
+						sbAsArrays[i] = (short) (Short.MAX_VALUE * Math.sin(2
+								* Math.PI * fCyclePosition));
+
+						double fCycleInc = fFreq / SAMPLING_RATE;
+						fCyclePosition += fCycleInc;
+						if (fCyclePosition > 1)
+							fCyclePosition -= 1;
+					}
+					executeJS(sbAsArrays);
+				}
+			} catch (Exception e) {
+				errorState = true;
+				errMsg = "Could not start sampling thread. -- "
+						+ e.getMessage();
+				repaint();
+			}
 		}
+	}
+
+	@Override
+	public void stop() {
+		running = false;
+		super.stop();
+	}
+
+	@Override
+	public void destroy() {
+		running = false;
+		super.destroy();
 	}
 
 	public void executeJS(short[] pcmData) {
 		JSObject j = JSObject.getWindow(this);
-		j.call("passAudio", new Object[] {pcmData});
-	}
-
-	public class SamplingThread extends Thread {
-		boolean running = false;
-
-		public void run() {
-			running = true;
-			try {
-				int sampleSize = (int) (audioFormat.getFrameSize()
-						* audioFormat.getChannels() * audioFormat
-						.getSampleRate()) / 50; // 20ms
-				System.out.println("Sample Size is: " + sampleSize + " bytes");
-				System.out.println("Byte-order is big edian?: "
-						+ audioFormat.isBigEndian());
-				byte sampleBuffer[] = new byte[sampleSize];
-				dataline.start();
-				while (running
-						&& dataline.read(sampleBuffer, 0, sampleSize) > 0) {
-					ByteBuffer bob = ByteBuffer.wrap(sampleBuffer);
-					if (audioFormat.isBigEndian()) {
-						bob.order(ByteOrder.BIG_ENDIAN);
-					} else {
-						bob.order(ByteOrder.LITTLE_ENDIAN);
-					}
-					ShortBuffer sb = bob.asShortBuffer();
-					sbAsArrays = new short[sb.capacity()];
-					sb.get(sbAsArrays);
-					executeJS(sbAsArrays);
-					repaint();
-
-				}
-
-				dataline.flush();
-				dataline.close();
-
-			} catch (Exception e) {
-				errorState = true;
-				errMsg = "Problem occurred in thread loop -- " + e.getMessage();
-				repaint();
-			}
-		}
-
+		j.call("passAudio", new Object[] { pcmData });
 	}
 
 	int map(int x, int in_min, int in_max, int out_min, int out_max) {
@@ -109,28 +80,10 @@ public class MicDataSpewer extends Applet {
 		if (errorState) {
 			g.setColor(Color.black);
 			g.drawString(errMsg, 86, 124);
-			this.sampleThread.running = false;
 			return;
 		}
 		if (sbAsArrays != null) {
-			/*
-			Rectangle drawingSpace = g.getClipBounds();
-			g.setColor(Color.BLACK);
-			g.fillRect(0, 0, drawingSpace.width, drawingSpace.height);
-			for (int i = 1; i < sbAsArrays.length; i++) {
-				g.setColor(Color.GREEN);
-				int oldX = map(i - 1, 0, sbAsArrays.length, 0,
-						drawingSpace.width);
-				int newX = map(i, 0, sbAsArrays.length, 0, drawingSpace.width);
-				int oldY = map(sbAsArrays[i - 1] * multiplier, Short.MAX_VALUE,
-						Short.MIN_VALUE, 0, drawingSpace.height);
-				int newY = map(sbAsArrays[i] * multiplier, Short.MAX_VALUE,
-						Short.MIN_VALUE, 0, drawingSpace.height);
 
-				g.drawLine(oldX, oldY, newX, newY);
-			
-			}
-			*/
 		} else {
 			g.drawString("Loading...", 20, 60);
 		}
