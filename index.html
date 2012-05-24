@@ -1,14 +1,31 @@
 <html>
-	<head>
-		<title>BYB Mic Data Grabber</title>
-	</head>
-	<body>
-		<div>
-			<br>
-				<object classid="java:MicDataSpewer.class" 
-					type="application/x-java-applet" archive="MicDataSpewer.jar"
-					height="600" width="800" code="MicDataSpewer">
-				</object>
-		</div>
-	</body>
+  <head>
+    <title>BYB Mic Data Grabber</title>
+    <script type="text/javascript" charset="utf-8">
+      var numTimes = 0;
+      function passAudio(pcmData) {
+        if (numTimes < 10) {
+        console.log(pcmData);
+      
+        var derp = document.createElement('p');
+        for(var i = 0; i<pcmData.length; i++) {
+          derp.appendChild(document.createTextNode(pcmData[i] + ", "));
+        }
+        document.getElementById('mic').appendChild(derp);
+        //  console.log(derp);
+          numTimes++;
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="mic">
+      <br>
+      <object classid="java:MicDataSpewer.class"
+      type="application/x-java-applet" archive="MicDataSpewer.jar"
+              height="1" width="1" code="MicDataSpewer">
+        <param name="MAYSCRIPT" value="true" />
+      </object>
+    </div>
+  </body>
 </html>
